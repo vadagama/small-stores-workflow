@@ -49,12 +49,14 @@ function parseSubprocess(raw: any, stageColor: string, fallbackOffset: number): 
     ? raw.operations.map((o: unknown) => parseOperation(o, fallbackOffset))
     : [];
 
+  const rawStart = num(raw.startOffset, fallbackOffset);
+  const rawEnd   = num(raw.endOffset, rawStart);
   const startOffset = ops.length
-    ? Math.min(...ops.map(o => o.startOffset))
-    : num(raw.startOffset, fallbackOffset);
+    ? Math.min(rawStart, Math.min(...ops.map(o => o.startOffset)))
+    : rawStart;
   const endOffset = ops.length
-    ? Math.max(...ops.map(o => o.endOffset))
-    : num(raw.endOffset, startOffset);
+    ? Math.max(rawEnd, Math.max(...ops.map(o => o.endOffset)))
+    : rawEnd;
 
   return {
     id: str(raw.id) || uid('sub'),

@@ -142,6 +142,19 @@ export function TopBar({ onToast }: TopBarProps) {
             </div>
           )}
 
+          {/* ── Reverse toggle: Gantt + Timeline ────────────────────────── */}
+          {state.view !== 'cards' && (
+            <label className={chip('cursor-pointer')}>
+              <input
+                type="checkbox"
+                checked={state.reverseTime}
+                onChange={e => dispatch({ type: 'SET_REVERSE_TIME', value: e.target.checked })}
+                className="accent-[#2f7ecb]"
+              />
+              Реверс
+            </label>
+          )}
+
           {/* ── Gantt checkboxes ─────────────────────────────────────────── */}
           {state.view === 'gantt' && ([
             { key: 'showStages', label: 'Этапы',       action: 'SET_SHOW_STAGES' },

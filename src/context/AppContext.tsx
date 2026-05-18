@@ -50,7 +50,8 @@ type Action =
   | { type: 'MOVE_SUB_TO_STAGE'; subId: string; toStageId: string; toIdx: number }
   | { type: 'SET_TIMELINE_SCALE'; value: TimelineScale }
   | { type: 'SET_SHOW_IO_CARDS'; value: boolean }
-  | { type: 'SET_SHOW_STEPS_CARDS'; value: boolean };
+  | { type: 'SET_SHOW_STEPS_CARDS'; value: boolean }
+  | { type: 'SET_REVERSE_TIME'; value: boolean };
 
 // ── Initial state ────────────────────────────────────────────────────────────
 
@@ -72,6 +73,7 @@ const initialState: AppState = {
   timelineScale: 'weeks',
   showIoCards: true,
   showStepsCards: false,
+  reverseTime: false,
 };
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -455,6 +457,7 @@ function reducer(state: AppState, action: Action): AppState {
     case 'SET_TIMELINE_SCALE':   return { ...state, timelineScale: action.value };
     case 'SET_SHOW_IO_CARDS':    return { ...state, showIoCards: action.value };
     case 'SET_SHOW_STEPS_CARDS': return { ...state, showStepsCards: action.value };
+    case 'SET_REVERSE_TIME':     return { ...state, reverseTime: action.value };
 
     default:
       return state;
@@ -488,10 +491,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        // Support old format (plain Stage[]) and new format ({ stages, changelog })
+        // Support old format (plain Stage[]) and new format ({ stages, changelog, projectStart })
         const stages: Stage[] = Array.isArray(parsed) ? parsed : (parsed.stages ?? []);
         const changelog = Array.isArray(parsed) ? [] : (parsed.changelog ?? []);
+        const projectStart: string | undefined = Array.isArray(parsed) ? undefined : parsed.projectStart;
         snapshotRef.current = stages;
+        if (projectStart) dispatch({ type: 'SET_PROJECT_START', value: projectStart });
         dispatch({ type: 'LOAD_SUCCESS', stages, changelog });
         return;
       } catch { /* fall through to YAML */ }
@@ -507,9 +512,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!state.loading && state.stages.length > 0) {
-      localStorage.setItem(LS_KEY, JSON.stringify({ stages: state.stages, changelog: state.changelog }));
+      localStorage.setItem(LS_KEY, JSON.stringify({
+        stages: state.stages,
+        changelog: state.changelog,
+        projectStart: state.projectStart,
+      }));
     }
-  }, [state.stages, state.changelog, state.loading]);
+  }, [state.stages, state.changelog, state.loading, state.projectStart]);
 
   function loadFromText(text: string) {
     dispatch({ type: 'LOAD_START' });

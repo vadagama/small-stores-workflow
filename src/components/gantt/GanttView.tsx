@@ -62,19 +62,32 @@ export function GanttView() {
 
   const monthCols = useMemo(() => {
     const cols: { label: string; left: number; width: number }[] = [];
-    for (let d = 0; d <= totalDays; d++) {
-      const date = offsetToDate(minOffset + d, state.projectStart, state.minOffset);
-      if (date.getDate() === 1 || d === 0) {
-        const label = monthName(date);
-        if (cols.length && cols[cols.length - 1].label === label) continue;
+    if (state.reverseTime) {
+      const groupDays = state.dayWidth < 12 ? 30 : 7;
+      for (let d = 0; d <= totalDays; d += groupDays) {
+        const daysLeft = maxOffset - (minOffset + d);
+        const label = state.dayWidth < 12
+          ? `−${Math.max(1, Math.ceil(daysLeft / 30))} мес`
+          : `−${Math.max(1, Math.ceil(daysLeft / 7))} нед`;
         const left = d * state.dayWidth;
-        if (cols.length) cols[cols.length - 1].width = left - cols[cols.length - 1].left;
-        cols.push({ label, left, width: 0 });
+        const width = Math.min(groupDays, totalDays - d + 1) * state.dayWidth;
+        cols.push({ label, left, width });
       }
+    } else {
+      for (let d = 0; d <= totalDays; d++) {
+        const date = offsetToDate(minOffset + d, state.projectStart, state.minOffset);
+        if (date.getDate() === 1 || d === 0) {
+          const label = monthName(date);
+          if (cols.length && cols[cols.length - 1].label === label) continue;
+          const left = d * state.dayWidth;
+          if (cols.length) cols[cols.length - 1].width = left - cols[cols.length - 1].left;
+          cols.push({ label, left, width: 0 });
+        }
+      }
+      if (cols.length) cols[cols.length - 1].width = totalDays * state.dayWidth - cols[cols.length - 1].left + state.dayWidth;
     }
-    if (cols.length) cols[cols.length - 1].width = totalDays * state.dayWidth - cols[cols.length - 1].left + state.dayWidth;
     return cols;
-  }, [totalDays, minOffset, state.projectStart, state.minOffset, state.dayWidth]);
+  }, [totalDays, minOffset, maxOffset, state.projectStart, state.minOffset, state.dayWidth, state.reverseTime]);
 
   // Sync scroll
   function onTreeScroll(e: React.UIEvent<HTMLDivElement>) {
@@ -120,24 +133,59 @@ export function GanttView() {
                 let weekCounter = 0;
                 const isWeekMode = state.dayWidth >= 8 && state.dayWidth < 22;
                 return Array.from({ length: totalDays + 1 }, (_, d) => {
-                  const date = offsetToDate(minOffset + d, state.projectStart, state.minOffset);
-                  const dayNum = date.getDay();
-                  const isWeekend = dayNum === 0 || dayNum === 6;
-                  const isMonday = dayNum === 1;
-                  if (isWeekMode && isMonday) weekCounter++;
-                  const label = state.dayWidth >= 22
-                    ? fmtShort(date).slice(0, 2)
-                    : isWeekMode && isMonday
-                    ? `Нед ${weekCounter}`
-                    : '';
+                  const offset = minOffset + d;
+                  const daysLeft = maxOffset - offset;
+                  let label: string;
+                  if (state.reverseTime) {
+                    if (state.dayWidth >= 22) {
+                      label = daysLeft >= 0 ? `−${daysLeft || 1}` : '';
+                    } else if (isWeekMode) {
+                      const date = offsetToDate(offset, state.projectStart, state.minOffset);
+                      const isMonday = date.getDay() === 1;
+                      if (isMonday) {
+                        const weeksLeft = Math.max(1, Math.ceil(daysLeft / 7));
+                        label = `−${weeksLeft} нед`;
+                      } else {
+                        label = '';
+                      }
+                    } else {
+                      label = '';
+                    }
+                  } else {
+                    const date = offsetToDate(offset, state.projectStart, state.minOffset);
+                    const dayNum = date.getDay();
+                    const isWeekend = dayNum === 0 || dayNum === 6;
+                    const isMonday = dayNum === 1;
+                    if (isWeekMode && isMonday) weekCounter++;
+                    label = state.dayWidth >= 22
+                      ? fmtShort(date).slice(0, 2)
+                      : isWeekMode && isMonday
+                      ? `Нед ${weekCounter}`
+                      : '';
+                    return (
+                      <span
+                        key={d}
+                        className={`absolute top-0 ${
+                          isWeekMode
+                            ? 'text-[10px] font-semibold text-[var(--muted)] pl-1'
+                            : `text-[9px] text-center ${isWeekend ? 'text-[rgba(220,80,80,.6)]' : 'text-[var(--muted)]'}`
+                        }`}
+                        style={{
+                          left: d * state.dayWidth,
+                          width: isWeekMode && isMonday ? 7 * state.dayWidth : state.dayWidth,
+                          lineHeight: '27px',
+                        }}
+                      >
+                        {label}
+                      </span>
+                    );
+                  }
+                  const date = offsetToDate(offset, state.projectStart, state.minOffset);
+                  const isMonday = date.getDay() === 1;
                   return (
                     <span
                       key={d}
-                      className={`absolute top-0 ${
-                        isWeekMode
-                          ? 'text-[10px] font-semibold text-[var(--muted)] pl-1'
-                          : `text-[9px] text-center ${isWeekend ? 'text-[rgba(220,80,80,.6)]' : 'text-[var(--muted)]'}`
-                      }`}
+                      className="absolute top-0 text-[10px] font-semibold text-[var(--muted)] pl-1"
                       style={{
                         left: d * state.dayWidth,
                         width: isWeekMode && isMonday ? 7 * state.dayWidth : state.dayWidth,
@@ -370,6 +418,7 @@ function GanttBarRow({ row, rowIndex, rows, minOffset, dayWidth, hovered, onHove
                 {fmtShort(offsetToDate(row.startOffset, state.projectStart, state.minOffset))}
                 {' – '}
                 {fmtShort(offsetToDate(row.endOffset, state.projectStart, state.minOffset))}
+                <span className="font-bold ml-2 text-[14px]"> {row.endOffset - row.startOffset} дней</span>
               </span>
             </>
           )}

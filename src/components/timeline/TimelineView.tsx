@@ -64,10 +64,12 @@ function buildMarkers(
     const startD = offsetToDate(minOff, projectStart, globalMin);
     const dow = (startD.getDay() + 6) % 7;
     let off = minOff - dow;
+    let weekNum = 0;
     while (off <= maxOff) {
+      weekNum++;
       if (off >= minOff) {
         const d = offsetToDate(off, projectStart, globalMin);
-        markers.push({ offset: off, label: `Нед ${getISOWeek(d)}`, sublabel: fmtShort(d) });
+        markers.push({ offset: off, label: `Нед ${weekNum}`, sublabel: fmtShort(d) });
       }
       off += 7;
     }
@@ -134,10 +136,22 @@ export function TimelineView() {
   );
   const totalContentW = TRACK_GAP + numTracks * (CARD_W + TRACK_GAP);
 
-  const markers = useMemo(
-    () => buildMarkers(globalMin, globalMax, scale, state.projectStart, globalMin),
-    [globalMin, globalMax, scale, state.projectStart],
-  );
+  const markers = useMemo(() => {
+    const base = buildMarkers(globalMin, globalMax, scale, state.projectStart, globalMin);
+    if (!state.reverseTime) return base;
+    return base.map(m => {
+      const daysLeft = globalMax - m.offset;
+      if (scale === 'days') {
+        return { ...m, label: `−${Math.max(1, daysLeft)} дн`, sublabel: undefined };
+      } else if (scale === 'weeks') {
+        const weeksLeft = Math.max(1, Math.ceil(daysLeft / 7));
+        return { ...m, label: `−${weeksLeft} нед`, sublabel: undefined };
+      } else {
+        const monthsLeft = Math.max(1, Math.ceil(daysLeft / 30));
+        return { ...m, label: `−${monthsLeft} мес`, sublabel: undefined };
+      }
+    });
+  }, [globalMin, globalMax, scale, state.projectStart, state.reverseTime]);
 
   const syncScroll = useCallback(() => {
     if (mainRef.current && timeRef.current)
@@ -307,8 +321,9 @@ export function TimelineView() {
                       {sub.title}
                     </div>
                     {heightPx >= 54 && (
-                      <div className="text-[9px] font-mono text-white/70 pointer-events-none">
-                        {fmtShort(startDate)} – {fmtShort(endDate)}
+                      <div className="pointer-events-none">
+                        <div className="text-[9px] font-mono text-white/70">{fmtShort(startDate)} – {fmtShort(endDate)}</div>
+                        <div className="text-[17px] font-bold text-white/90">{effEnd - effStart} дней</div>
                       </div>
                     )}
                   </div>

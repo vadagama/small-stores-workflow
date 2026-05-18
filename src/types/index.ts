@@ -77,4 +77,5 @@ export interface AppState {
   timelineScale: TimelineScale;
   showIoCards: boolean;
   showStepsCards: boolean;
+  reverseTime: boolean;
 }
