@@ -169,10 +169,10 @@ export function SubBlock({ stage, sub }: SubBlockProps) {
 
       {/* Operations accordion */}
       <Accordion.Root
-        key={sub.id}
+        key={`${state.showStepsCards}-${sub.id}`}
         type="single"
         collapsible
-        defaultValue=""
+        defaultValue={state.showStepsCards ? 'open' : ''}
       >
         <Accordion.Item value="open">
           <Accordion.Header>
