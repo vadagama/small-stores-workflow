@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
 import { TopBar } from './components/layout/TopBar';
 import { CardsView } from './components/cards/CardsView';
@@ -9,10 +9,17 @@ import { Toast } from './components/ui/Toast';
 import { LoginPage } from './components/auth/LoginPage';
 
 function AppInner() {
-  const { state } = useApp();
+  const { state, dispatch } = useApp();
   const [toast, setToast] = useState<string | null>(null);
   const [showLogin, setShowLogin] = useState(false);
   const showToast = useCallback((msg: string) => setToast(msg), []);
+
+  useEffect(() => {
+    if (state.blobMessage) {
+      showToast(state.blobMessage);
+      dispatch({ type: 'SET_BLOB_MESSAGE', message: null });
+    }
+  }, [state.blobMessage, showToast, dispatch]);
 
   if (state.loading) {
     return (

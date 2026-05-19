@@ -80,4 +80,5 @@ export interface AppState {
   showStepsCards: boolean;
   reverseTime: boolean;
   appMode: AppMode;
+  blobMessage: string | null;
 }
