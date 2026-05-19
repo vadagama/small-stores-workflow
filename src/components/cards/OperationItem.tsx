@@ -14,7 +14,8 @@ interface OperationItemProps {
 }
 
 export function OperationItem({ op, sub, opsBg, opsBC, opsColor = '#1a2030', index }: OperationItemProps) {
-  const { dispatch } = useApp();
+  const { state, dispatch } = useApp();
+  const readOnly = state.appMode === 'view';
   const [editing, setEditing] = useState(false);
   const [val, setVal] = useState(op.title);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -51,7 +52,7 @@ export function OperationItem({ op, sub, opsBg, opsBC, opsColor = '#1a2030', ind
       style={{ ...style, background: opsBg, borderColor: opsBC, color: opsColor }}
       className="rounded-md px-[10px] py-[6px] text-[.77rem] leading-snug font-medium border-l-[3px] select-none"
     >
-      {editing ? (
+      {!readOnly && editing ? (
         <div className="flex items-start gap-1">
           {index !== undefined && (
             <span className="flex-shrink-0 text-[.65rem] font-bold opacity-40 mt-[3px] w-4 text-right">{index}.</span>
@@ -75,10 +76,9 @@ export function OperationItem({ op, sub, opsBg, opsBC, opsColor = '#1a2030', ind
         </div>
       ) : (
         <span
-          className="cursor-grab flex items-start gap-1.5"
-          onDoubleClick={() => setEditing(true)}
-          {...attributes}
-          {...listeners}
+          className={`flex items-start gap-1.5 ${readOnly ? 'cursor-default' : 'cursor-grab'}`}
+          onDoubleClick={() => { if (!readOnly) setEditing(true); }}
+          {...(readOnly ? {} : { ...attributes, ...listeners })}
         >
           {index !== undefined && (
             <span className="flex-shrink-0 text-[.65rem] font-bold opacity-35 mt-[1px] w-4 text-right">{index}.</span>

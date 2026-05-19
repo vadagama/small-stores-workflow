@@ -17,6 +17,7 @@ interface SubprocessPanelProps {
 
 export function SubprocessPanel({ subId, onClose }: SubprocessPanelProps) {
   const { state, dispatch } = useApp();
+  const readOnly = state.appMode === 'view';
 
   const stage = state.stages.find(s => s.subprocesses.some(sub => sub.id === subId));
   const sub = stage?.subprocesses.find(s => s.id === subId);
@@ -104,7 +105,7 @@ export function SubprocessPanel({ subId, onClose }: SubprocessPanelProps) {
           </button>
         </div>
 
-        {editingTitle ? (
+        {!readOnly && editingTitle ? (
           <div className="flex items-start gap-2">
             <textarea
               ref={titleAreaRef}
@@ -125,9 +126,9 @@ export function SubprocessPanel({ subId, onClose }: SubprocessPanelProps) {
           </div>
         ) : (
           <h3
-            className="text-sm font-bold text-[var(--text)] leading-snug cursor-default hover:underline hover:decoration-dotted hover:decoration-[rgba(255,255,255,.4)]"
-            onDoubleClick={() => { setEditingTitle(true); setTitleVal(sub.title); }}
-            title="Двойной клик для редактирования"
+            className="text-sm font-bold text-[var(--text)] leading-snug cursor-default"
+            onDoubleClick={() => { if (!readOnly) { setEditingTitle(true); setTitleVal(sub.title); } }}
+            title={readOnly ? undefined : 'Двойной клик для редактирования'}
           >
             {sub.title}
           </h3>
@@ -140,7 +141,7 @@ export function SubprocessPanel({ subId, onClose }: SubprocessPanelProps) {
         {/* Responsible */}
         <div className="px-4 py-3 border-b border-[var(--line)] flex items-center gap-2">
           <span className="text-[9px] font-extrabold uppercase tracking-[.7px] text-[var(--muted)] flex-shrink-0 w-16">Отв.</span>
-          {editingResp ? (
+          {!readOnly && editingResp ? (
             <input
               autoFocus
               value={respVal}
@@ -151,8 +152,8 @@ export function SubprocessPanel({ subId, onClose }: SubprocessPanelProps) {
             />
           ) : (
             <span
-              onClick={() => { setEditingResp(true); setRespVal(sub.responsible); }}
-              className={`text-xs cursor-pointer px-2 py-0.5 rounded hover:bg-[rgba(255,255,255,.07)] ${sub.responsible ? 'text-[var(--text)] font-medium' : 'text-[var(--muted)] italic'}`}
+              onClick={() => { if (!readOnly) { setEditingResp(true); setRespVal(sub.responsible); } }}
+              className={`text-xs px-2 py-0.5 rounded ${readOnly ? '' : 'cursor-pointer hover:bg-[rgba(255,255,255,.07)]'} ${sub.responsible ? 'text-[var(--text)] font-medium' : 'text-[var(--muted)] italic'}`}
             >
               {sub.responsible || 'Не указан'}
             </span>
@@ -166,23 +167,25 @@ export function SubprocessPanel({ subId, onClose }: SubprocessPanelProps) {
             <input
               type="date"
               value={isoDate(startDate)}
+              readOnly={readOnly}
               onChange={e => {
-                if (!e.target.value) return;
+                if (readOnly || !e.target.value) return;
                 const ns = dateToOffset(e.target.value, state.projectStart, state.minOffset);
                 dispatch({ type: 'RESIZE_SUB', subId, startOffset: ns, endOffset: Math.max(ns, sub.endOffset) });
               }}
-              className="bg-transparent border-0 outline-none text-xs text-[var(--text)] cursor-pointer"
+              className={`bg-transparent border-0 outline-none text-xs text-[var(--text)] ${readOnly ? 'cursor-default pointer-events-none' : 'cursor-pointer'}`}
             />
             <span className="text-[var(--muted)] text-[10px]">—</span>
             <input
               type="date"
               value={isoDate(endDate)}
+              readOnly={readOnly}
               onChange={e => {
-                if (!e.target.value) return;
+                if (readOnly || !e.target.value) return;
                 const ne = dateToOffset(e.target.value, state.projectStart, state.minOffset);
                 dispatch({ type: 'RESIZE_SUB', subId, startOffset: Math.min(sub.startOffset, ne), endOffset: ne });
               }}
-              className="bg-transparent border-0 outline-none text-xs text-[var(--text)] cursor-pointer"
+              className={`bg-transparent border-0 outline-none text-xs text-[var(--text)] ${readOnly ? 'cursor-default pointer-events-none' : 'cursor-pointer'}`}
             />
           </div>
         </div>
@@ -207,6 +210,19 @@ export function SubprocessPanel({ subId, onClose }: SubprocessPanelProps) {
               </Accordion.Header>
               <Accordion.Content className="accordion-content">
                 <div className="px-3 pb-3 pt-1 flex flex-col gap-[5px]" style={{ background: 'rgba(0,0,0,.15)' }}>
+                  {readOnly ? (
+                    sub.operations.map((op, i) => (
+                      <OperationItem
+                        key={op.id}
+                        op={op}
+                        sub={sub}
+                        index={i + 1}
+                        opsBg="rgba(155,185,245,.07)"
+                        opsBC="rgba(155,185,245,.2)"
+                        opsColor="rgba(255,255,255,.82)"
+                      />
+                    ))
+                  ) : (
                   <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
                     <SortableContext items={sub.operations.map(o => o.id)} strategy={verticalListSortingStrategy}>
                       {sub.operations.map((op, i) => (
@@ -222,8 +238,9 @@ export function SubprocessPanel({ subId, onClose }: SubprocessPanelProps) {
                       ))}
                     </SortableContext>
                   </DndContext>
+                  )}
 
-                  {adding ? (
+                  {!readOnly && (adding ? (
                     <input
                       autoFocus
                       value={newOpVal}
@@ -240,7 +257,7 @@ export function SubprocessPanel({ subId, onClose }: SubprocessPanelProps) {
                     >
                       + шаг
                     </button>
-                  )}
+                  ))}
                 </div>
               </Accordion.Content>
             </Accordion.Item>

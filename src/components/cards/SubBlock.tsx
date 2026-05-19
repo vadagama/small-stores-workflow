@@ -15,6 +15,7 @@ interface SubBlockProps {
 
 export function SubBlock({ stage, sub }: SubBlockProps) {
   const { state, dispatch } = useApp();
+  const readOnly = state.appMode === 'view';
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleVal, setTitleVal] = useState(sub.title);
   const [editingResp, setEditingResp] = useState(false);
@@ -71,11 +72,10 @@ export function SubBlock({ stage, sub }: SubBlockProps) {
       {/* Sub header */}
       <div
         style={{ background: meta.hdr }}
-        className={`px-3 py-[9px] flex gap-2 cursor-grab ${editingTitle ? 'items-start' : 'items-baseline'}`}
-        {...attributes}
-        {...listeners}
+        className={`px-3 py-[9px] flex gap-2 ${readOnly ? 'cursor-default' : 'cursor-grab'} ${editingTitle ? 'items-start' : 'items-baseline'}`}
+        {...(readOnly ? {} : { ...attributes, ...listeners })}
       >
-        {editingTitle ? (
+        {!readOnly && editingTitle ? (
           <>
             <textarea
               ref={titleAreaRef}
@@ -98,8 +98,8 @@ export function SubBlock({ stage, sub }: SubBlockProps) {
         ) : (
           <>
             <span
-              className="flex-1 font-display text-[.82rem] font-bold text-white leading-snug cursor-default hover:underline hover:decoration-dotted hover:decoration-[rgba(255,255,255,.5)]"
-              onDoubleClick={e => { e.stopPropagation(); setEditingTitle(true); setTitleVal(sub.title); }}
+              className="flex-1 font-display text-[.82rem] font-bold text-white leading-snug cursor-default"
+              onDoubleClick={e => { if (!readOnly) { e.stopPropagation(); setEditingTitle(true); setTitleVal(sub.title); } }}
             >
               {sub.title}
             </span>
@@ -115,7 +115,7 @@ export function SubBlock({ stage, sub }: SubBlockProps) {
         <span className="flex-shrink-0 text-[9px] font-extrabold tracking-[.7px] uppercase text-[rgba(255,255,255,.4)]">
           Отв.
         </span>
-        {editingResp ? (
+        {!readOnly && editingResp ? (
           <input
             autoFocus
             value={respVal}
@@ -126,8 +126,8 @@ export function SubBlock({ stage, sub }: SubBlockProps) {
           />
         ) : (
           <span
-            onClick={() => { setEditingResp(true); setRespVal(sub.responsible); }}
-            className={`text-[.8rem] font-semibold cursor-pointer px-[5px] py-px rounded hover:bg-[rgba(255,255,255,.08)] ${sub.responsible ? 'text-[rgba(255,255,255,.88)]' : 'text-[rgba(255,255,255,.28)] italic font-normal'}`}
+            onClick={() => { if (!readOnly) { setEditingResp(true); setRespVal(sub.responsible); } }}
+            className={`text-[.8rem] font-semibold px-[5px] py-px rounded ${readOnly ? '' : 'cursor-pointer hover:bg-[rgba(255,255,255,.08)]'} ${sub.responsible ? 'text-[rgba(255,255,255,.88)]' : 'text-[rgba(255,255,255,.28)] italic font-normal'}`}
           >
             {sub.responsible || 'Не указан'}
           </span>
@@ -141,23 +141,25 @@ export function SubBlock({ stage, sub }: SubBlockProps) {
           <input
             type="date"
             value={isoDate(offsetToDate(sub.startOffset, state.projectStart, state.minOffset))}
+            readOnly={readOnly}
             onChange={e => {
-              if (!e.target.value) return;
+              if (readOnly || !e.target.value) return;
               const ns = dateToOffset(e.target.value, state.projectStart, state.minOffset);
               dispatch({ type: 'RESIZE_SUB', subId: sub.id, startOffset: ns, endOffset: Math.max(ns, sub.endOffset) });
             }}
-            className="w-auto bg-transparent border-0 outline-none text-[.75rem] text-[rgba(255,255,255,.75)] cursor-pointer"
+            className={`w-auto bg-transparent border-0 outline-none text-[.75rem] text-[rgba(255,255,255,.75)] ${readOnly ? 'cursor-default pointer-events-none' : 'cursor-pointer'}`}
           />
           <span className="text-[rgba(255,255,255,.25)] text-[10px]">—</span>
           <input
             type="date"
             value={isoDate(offsetToDate(sub.endOffset, state.projectStart, state.minOffset))}
+            readOnly={readOnly}
             onChange={e => {
-              if (!e.target.value) return;
+              if (readOnly || !e.target.value) return;
               const ne = dateToOffset(e.target.value, state.projectStart, state.minOffset);
               dispatch({ type: 'RESIZE_SUB', subId: sub.id, startOffset: Math.min(sub.startOffset, ne), endOffset: ne });
             }}
-            className="w-auto bg-transparent border-0 outline-none text-[.75rem] text-[rgba(255,255,255,.75)] cursor-pointer"
+            className={`w-auto bg-transparent border-0 outline-none text-[.75rem] text-[rgba(255,255,255,.75)] ${readOnly ? 'cursor-default pointer-events-none' : 'cursor-pointer'}`}
           />
         </div>
       </div>
@@ -167,10 +169,10 @@ export function SubBlock({ stage, sub }: SubBlockProps) {
 
       {/* Operations accordion */}
       <Accordion.Root
-        key={`${state.showStepsCards}-${sub.id}`}
+        key={sub.id}
         type="single"
         collapsible
-        defaultValue={state.showStepsCards ? 'open' : ''}
+        defaultValue=""
       >
         <Accordion.Item value="open">
           <Accordion.Header>
@@ -184,6 +186,19 @@ export function SubBlock({ stage, sub }: SubBlockProps) {
           </Accordion.Header>
           <Accordion.Content className="accordion-content">
             <div className="px-[10px] pt-[6px] pb-[10px] flex flex-col gap-[5px]" style={{ background: 'rgba(0,0,0,.18)' }}>
+              {readOnly ? (
+                sub.operations.map((op, i) => (
+                  <OperationItem
+                    key={op.id}
+                    op={op}
+                    sub={sub}
+                    index={i + 1}
+                    opsBg="rgba(255,255,255,.08)"
+                    opsBC="rgba(255,255,255,.18)"
+                    opsColor="rgba(255,255,255,.82)"
+                  />
+                ))
+              ) : (
               <SortableContext items={sub.operations.map(o => o.id)} strategy={verticalListSortingStrategy}>
                 {sub.operations.map((op, i) => (
                   <OperationItem
@@ -197,8 +212,9 @@ export function SubBlock({ stage, sub }: SubBlockProps) {
                   />
                 ))}
               </SortableContext>
+              )}
 
-              {adding ? (
+              {!readOnly && (adding ? (
                 <input
                   autoFocus
                   value={newOpVal}
@@ -215,7 +231,7 @@ export function SubBlock({ stage, sub }: SubBlockProps) {
                 >
                   + операция
                 </button>
-              )}
+              ))}
             </div>
           </Accordion.Content>
         </Accordion.Item>

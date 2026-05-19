@@ -17,6 +17,7 @@ import type { Stage, Subprocess } from '../../types';
 
 export function CardsView() {
   const { state, dispatch } = useApp();
+  const readOnly = state.appMode === 'view';
   const [activeSub, setActiveSub] = useState<Subprocess | null>(null);
   const [dragOverStageId, setDragOverStageId] = useState<string | null>(null);
 
@@ -113,6 +114,22 @@ export function CardsView() {
     }
   }
 
+  if (readOnly) {
+    return (
+      <div className="overflow-y-auto h-full px-7 py-8 pb-20">
+        {state.stages.map(stage => (
+          <StageDropZone
+            key={stage.id}
+            stage={stage}
+            isOver={false}
+            showHeader={state.showStages}
+            readOnly
+          />
+        ))}
+      </div>
+    );
+  }
+
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
       <div className="overflow-y-auto h-full px-7 py-8 pb-20">
@@ -122,6 +139,7 @@ export function CardsView() {
             stage={stage}
             isOver={dragOverStageId === stage.id && activeSub !== null}
             showHeader={state.showStages}
+            readOnly={false}
           />
         ))}
       </div>
@@ -138,8 +156,17 @@ export function CardsView() {
   );
 }
 
-function StageDropZone({ stage, isOver, showHeader }: { stage: Stage; isOver: boolean; showHeader: boolean }) {
+function StageDropZone({ stage, isOver, showHeader, readOnly }: { stage: Stage; isOver: boolean; showHeader: boolean; readOnly: boolean }) {
   const { setNodeRef } = useDroppable({ id: stage.id, data: { type: 'stage' } });
+
+  const content = (
+    <>
+      {stage.subprocesses.map(sub => (
+        <SubBlock key={sub.id} stage={stage} sub={sub} />
+      ))}
+      {!readOnly && <AddSubButton stageId={stage.id} meta={stage.stageMeta} />}
+    </>
+  );
 
   return (
     <div
@@ -159,19 +186,24 @@ function StageDropZone({ stage, isOver, showHeader }: { stage: Stage; isOver: bo
         </div>
       )}
 
-      <div
-        ref={setNodeRef}
-        className="p-[14px_16px_16px] grid gap-3 min-h-[80px]"
-        style={{ background: stage.stageMeta.bg, gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))' }}
-      >
-        <SortableContext items={stage.subprocesses.map(s => s.id)} strategy={rectSortingStrategy}>
-          {stage.subprocesses.map(sub => (
-            <SubBlock key={sub.id} stage={stage} sub={sub} />
-          ))}
-        </SortableContext>
-
-        <AddSubButton stageId={stage.id} meta={stage.stageMeta} />
-      </div>
+      {readOnly ? (
+        <div
+          className="p-[14px_16px_16px] grid gap-3 min-h-[80px]"
+          style={{ background: stage.stageMeta.bg, gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))' }}
+        >
+          {content}
+        </div>
+      ) : (
+        <div
+          ref={setNodeRef}
+          className="p-[14px_16px_16px] grid gap-3 min-h-[80px]"
+          style={{ background: stage.stageMeta.bg, gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))' }}
+        >
+          <SortableContext items={stage.subprocesses.map(s => s.id)} strategy={rectSortingStrategy}>
+            {content}
+          </SortableContext>
+        </div>
+      )}
     </div>
   );
 }

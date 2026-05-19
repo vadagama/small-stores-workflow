@@ -162,11 +162,14 @@ export function TimelineView() {
     dispatch({ type: 'SET_SELECTED', id: state.selectedId === item.sub.id ? null : item.sub.id });
   }, [dispatch, state.selectedId]);
 
+  const readOnly = state.appMode === 'view';
+
   const startDrag = useCallback((
     e: React.PointerEvent,
     sub: Subprocess,
     type: DragType,
   ) => {
+    if (readOnly) return;
     e.stopPropagation();
     e.currentTarget.setPointerCapture(e.pointerId);
     dragRef.current = {
@@ -302,18 +305,20 @@ export function TimelineView() {
                   }}
                 >
                   {/* Top resize handle */}
-                  <div
-                    className="absolute top-0 left-0 right-0 cursor-ns-resize z-10"
-                    style={{ height: HANDLE_H }}
-                    onPointerDown={e => startDrag(e, sub, 'resize-top')}
-                  >
-                    <div className="absolute top-1 left-1/2 -translate-x-1/2 w-6 h-0.5 rounded bg-white/40" />
-                  </div>
+                  {!readOnly && (
+                    <div
+                      className="absolute top-0 left-0 right-0 cursor-ns-resize z-10"
+                      style={{ height: HANDLE_H }}
+                      onPointerDown={e => startDrag(e, sub, 'resize-top')}
+                    >
+                      <div className="absolute top-1 left-1/2 -translate-x-1/2 w-6 h-0.5 rounded bg-white/40" />
+                    </div>
+                  )}
 
                   {/* Card body — drag to move */}
                   <div
-                    className="absolute inset-0 cursor-grab active:cursor-grabbing px-2.5 flex flex-col justify-between"
-                    style={{ top: HANDLE_H, bottom: HANDLE_H, paddingTop: 4, paddingBottom: 4 }}
+                    className={`absolute inset-0 px-2.5 flex flex-col justify-between ${readOnly ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'}`}
+                    style={{ top: readOnly ? 0 : HANDLE_H, bottom: readOnly ? 0 : HANDLE_H, paddingTop: 4, paddingBottom: 4 }}
                     onPointerDown={e => startDrag(e, sub, 'move')}
                     onClick={() => !dragRef.current && handleClick(item)}
                   >
@@ -329,13 +334,15 @@ export function TimelineView() {
                   </div>
 
                   {/* Bottom resize handle */}
-                  <div
-                    className="absolute bottom-0 left-0 right-0 cursor-ns-resize z-10"
-                    style={{ height: HANDLE_H }}
-                    onPointerDown={e => startDrag(e, sub, 'resize-bottom')}
-                  >
-                    <div className="absolute bottom-1 left-1/2 -translate-x-1/2 w-6 h-0.5 rounded bg-white/40" />
-                  </div>
+                  {!readOnly && (
+                    <div
+                      className="absolute bottom-0 left-0 right-0 cursor-ns-resize z-10"
+                      style={{ height: HANDLE_H }}
+                      onPointerDown={e => startDrag(e, sub, 'resize-bottom')}
+                    >
+                      <div className="absolute bottom-1 left-1/2 -translate-x-1/2 w-6 h-0.5 rounded bg-white/40" />
+                    </div>
+                  )}
                 </div>
               );
             })}

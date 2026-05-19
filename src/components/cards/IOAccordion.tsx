@@ -10,6 +10,7 @@ interface IOAccordionProps {
 
 export function IOAccordion({ sub, kind }: IOAccordionProps) {
   const { state, dispatch } = useApp();
+  const readOnly = state.appMode === 'view';
   const items = kind === 'in' ? sub.ioIn : sub.ioOut;
   const [editIdx, setEditIdx] = useState<number | null>(null);
   const [editVal, setEditVal] = useState('');
@@ -58,6 +59,7 @@ export function IOAccordion({ sub, kind }: IOAccordionProps) {
   }
 
   if (items.length === 0 && !adding) {
+    if (readOnly) return null;
     return (
       <div className="px-[10px] pb-1">
         <button
@@ -89,7 +91,7 @@ export function IOAccordion({ sub, kind }: IOAccordionProps) {
           <ul className="px-[10px] pb-2 flex flex-col gap-1">
             {items.map((item, idx) => (
               <li key={idx}>
-                {editIdx === idx ? (
+                {!readOnly && editIdx === idx ? (
                   <textarea
                     ref={editAreaRef}
                     autoFocus
@@ -103,22 +105,24 @@ export function IOAccordion({ sub, kind }: IOAccordionProps) {
                 ) : (
                   <div
                     className="flex items-center gap-1"
-                    onDoubleClick={() => { setEditIdx(idx); setEditVal(item); }}
+                    onDoubleClick={() => { if (!readOnly) { setEditIdx(idx); setEditVal(item); } }}
                   >
-                    <span className="flex-1 text-[.74rem] text-[rgba(255,255,255,.78)] bg-[rgba(255,255,255,.07)] border-l-[3px] border-[rgba(255,255,255,.18)] rounded px-2 py-1 cursor-text">
+                    <span className="flex-1 text-[.74rem] text-[rgba(255,255,255,.78)] bg-[rgba(255,255,255,.07)] border-l-[3px] border-[rgba(255,255,255,.18)] rounded px-2 py-1">
                       {item}
                     </span>
-                    <button
-                      onClick={() => dispatch({ type: deleteAction, subId: sub.id, idx })}
-                      className="flex-shrink-0 text-[rgba(200,60,60,.35)] hover:text-[rgba(220,40,40,1)] text-xs px-1 transition-colors"
-                    >
-                      ×
-                    </button>
+                    {!readOnly && (
+                      <button
+                        onClick={() => dispatch({ type: deleteAction, subId: sub.id, idx })}
+                        className="flex-shrink-0 text-[rgba(200,60,60,.35)] hover:text-[rgba(220,40,40,1)] text-xs px-1 transition-colors"
+                      >
+                        ×
+                      </button>
+                    )}
                   </div>
                 )}
               </li>
             ))}
-            {adding ? (
+            {!readOnly && (adding ? (
               <li>
                 <textarea
                   ref={addAreaRef}
@@ -141,7 +145,7 @@ export function IOAccordion({ sub, kind }: IOAccordionProps) {
                   + добавить
                 </button>
               </li>
-            )}
+            ))}
           </ul>
         </Accordion.Content>
       </Accordion.Item>

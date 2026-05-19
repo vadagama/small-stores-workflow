@@ -5,6 +5,7 @@ import type { TimelineScale } from '../../types';
 
 interface TopBarProps {
   onToast: (msg: string) => void;
+  onLogin: () => void;
 }
 
 const SCALE_OPTS: { label: string; ganttVal: number; tlVal: TimelineScale }[] = [
@@ -14,12 +15,13 @@ const SCALE_OPTS: { label: string; ganttVal: number; tlVal: TimelineScale }[] = 
 ];
 
 function chip(extra = '') {
-  return `inline-flex items-center gap-1.5 border border-[var(--line)] bg-[#121920] rounded-lg px-[9px] py-[5px] text-[var(--muted)] text-xs ${extra}`;
+  return `inline-flex items-center gap-1.5 border border-[var(--line)] bg-[#121920] rounded-lg px-[9px] h-8 text-[var(--muted)] text-xs ${extra}`;
 }
 
-export function TopBar({ onToast }: TopBarProps) {
+export function TopBar({ onToast, onLogin }: TopBarProps) {
   const { state, dispatch, loadFromText, exportYaml } = useApp();
   const importRef = useRef<HTMLInputElement>(null);
+  const isAdmin = state.appMode === 'admin';
 
   function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -51,13 +53,12 @@ export function TopBar({ onToast }: TopBarProps) {
       .toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' });
   }, [state.stages, state.projectStart]);
 
-  const changeCount = state.changelog.length;
   const showToolbar = state.view !== 'changes';
 
   return (
     <header className="border-b border-[var(--line)] bg-[rgba(13,17,23,.97)] backdrop-blur-md px-[18px] pt-3 pb-[10px] flex-shrink-0 grid gap-2">
 
-      {/* ── Row 1: title + nav + import/export ─────────────────────────── */}
+      {/* ── Row 1: title + nav + actions ───────────────────────────────── */}
       <div className="flex items-center justify-between gap-4">
         <div>
           <h1 className="font-display text-xl font-extrabold tracking-tight">
@@ -84,19 +85,47 @@ export function TopBar({ onToast }: TopBarProps) {
             ))}
           </div>
 
-          <input ref={importRef} type="file" accept=".yaml,.yml" className="hidden" onChange={handleImport} />
-          <button
-            onClick={() => importRef.current?.click()}
-            className="px-3 py-[6px] text-xs font-bold rounded-lg border border-[var(--line)] bg-[#1a4a3a] hover:bg-[#215940] text-white transition-colors"
-          >
-            ↑ Импорт
-          </button>
+          {/* Admin-only: import */}
+          {isAdmin && (
+            <>
+              <input ref={importRef} type="file" accept=".yaml,.yml" className="hidden" onChange={handleImport} />
+              <button
+                onClick={() => importRef.current?.click()}
+                className="inline-flex items-center px-3 h-10 text-xs font-bold rounded-lg border border-[var(--line)] bg-[#1a4a3a] hover:bg-[#215940] text-white transition-colors"
+              >
+                ↑ Импорт
+              </button>
+            </>
+          )}
+
+          {/* Export — both modes */}
           <button
             onClick={() => { exportYaml(); onToast('YAML выгружен'); }}
-            className="px-3 py-[6px] text-xs font-bold rounded-lg border border-[var(--line)] bg-[#1e3a6a] hover:bg-[#2a4f8a] text-white transition-colors"
+            className="inline-flex items-center px-3 h-10 text-xs font-bold rounded-lg border border-[var(--line)] bg-[#1e3a6a] hover:bg-[#2a4f8a] text-white transition-colors"
           >
             ↓ Экспорт
           </button>
+
+          {/* View mode: Вход button */}
+          {!isAdmin && (
+            <button
+              onClick={onLogin}
+              className="inline-flex items-center gap-1 px-3 h-10 text-xs font-bold rounded-lg border border-[var(--line)] bg-[#2a1a4a] hover:bg-[#3a2460] text-white transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Вход
+            </button>
+          )}
+
+          {/* Admin mode: Выход button */}
+          {isAdmin && (
+            <button
+              onClick={() => dispatch({ type: 'SET_APP_MODE', mode: 'view' })}
+              className="inline-flex items-center gap-1 px-3 h-10 text-xs font-bold rounded-lg border border-[rgba(255,100,100,.3)] bg-[rgba(80,20,20,.4)] hover:bg-[rgba(100,30,30,.6)] text-[rgba(255,130,130,.9)] transition-colors"
+              title="Выйти из режима редактирования"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>Выход
+            </button>
+          )}
         </div>
       </div>
 
@@ -104,7 +133,7 @@ export function TopBar({ onToast }: TopBarProps) {
       {showToolbar && (
         <div className="flex items-center gap-2 flex-wrap">
 
-          {/* Shared: project start */}
+          {/* Shared: project start — always editable (shifts all dates) */}
           <label className={chip('whitespace-nowrap cursor-pointer')}>
             Старт&nbsp;
             <input
@@ -122,7 +151,7 @@ export function TopBar({ onToast }: TopBarProps) {
 
           {/* ── Scale switcher: Gantt + Timeline ────────────────────────── */}
           {state.view !== 'cards' && (
-            <div className="inline-flex p-[2px] border border-[var(--line)] rounded-lg bg-[#0f1419]">
+            <div className="inline-flex h-8 p-[2px] border border-[var(--line)] rounded-lg bg-[#0f1419]">
               {SCALE_OPTS.map(({ label, ganttVal, tlVal }) => (
                 <button
                   key={label}
@@ -130,7 +159,7 @@ export function TopBar({ onToast }: TopBarProps) {
                     if (state.view === 'gantt') dispatch({ type: 'SET_DAY_WIDTH', value: ganttVal });
                     else dispatch({ type: 'SET_TIMELINE_SCALE', value: tlVal });
                   }}
-                  className={`px-3 py-[4px] rounded-[5px] text-[11px] font-semibold transition-colors ${
+                  className={`px-3 h-full rounded-[5px] text-[11px] font-semibold transition-colors ${
                     (state.view === 'gantt' ? state.dayWidth === ganttVal : state.timelineScale === tlVal)
                       ? 'bg-[#26313b] text-white'
                       : 'text-[var(--muted)] hover:text-white'

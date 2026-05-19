@@ -1,4 +1,5 @@
 export type ViewMode = 'cards' | 'gantt' | 'changes' | 'timeline';
+export type AppMode = 'view' | 'admin';
 
 export interface StageConfig {
   bg: string;
@@ -78,4 +79,5 @@ export interface AppState {
   showIoCards: boolean;
   showStepsCards: boolean;
   reverseTime: boolean;
+  appMode: AppMode;
 }

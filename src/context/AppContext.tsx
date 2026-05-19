@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useEffect, useRef } from 'react';
-import type { AppState, Stage, Subprocess, Operation, ViewMode, ChangelogEntry, TimelineScale } from '../types';
+import type { AppState, Stage, Subprocess, Operation, ViewMode, AppMode, ChangelogEntry, TimelineScale } from '../types';
 import { loadYamlFromUrl, loadYamlFromText } from '../utils/yamlParser';
 import { downloadYaml } from '../utils/yamlExporter';
 import { computeChanges, initialExportSummary } from '../utils/changeDetector';
@@ -51,9 +51,12 @@ type Action =
   | { type: 'SET_TIMELINE_SCALE'; value: TimelineScale }
   | { type: 'SET_SHOW_IO_CARDS'; value: boolean }
   | { type: 'SET_SHOW_STEPS_CARDS'; value: boolean }
-  | { type: 'SET_REVERSE_TIME'; value: boolean };
+  | { type: 'SET_REVERSE_TIME'; value: boolean }
+  | { type: 'SET_APP_MODE'; mode: AppMode };
 
 // ── Initial state ────────────────────────────────────────────────────────────
+
+const SS_MODE_KEY = 'appMode';
 
 const initialState: AppState = {
   stages: [],
@@ -74,6 +77,7 @@ const initialState: AppState = {
   showIoCards: true,
   showStepsCards: false,
   reverseTime: false,
+  appMode: (sessionStorage.getItem(SS_MODE_KEY) as AppMode) ?? 'view',
 };
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -458,6 +462,9 @@ function reducer(state: AppState, action: Action): AppState {
     case 'SET_SHOW_IO_CARDS':    return { ...state, showIoCards: action.value };
     case 'SET_SHOW_STEPS_CARDS': return { ...state, showStepsCards: action.value };
     case 'SET_REVERSE_TIME':     return { ...state, reverseTime: action.value };
+    case 'SET_APP_MODE':
+      sessionStorage.setItem(SS_MODE_KEY, action.mode);
+      return { ...state, appMode: action.mode };
 
     default:
       return state;

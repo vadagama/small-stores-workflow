@@ -293,6 +293,7 @@ interface GanttBarRowProps {
 
 function GanttBarRow({ row, rowIndex, rows, minOffset, dayWidth, hovered, onHover, onDropIndicator, onSubDrop, onSelect }: GanttBarRowProps) {
   const { dispatch, state } = useApp();
+  const readOnly = state.appMode === 'view';
   const [dragging, setDragging] = useState(false);
   const pendingEdge = useRef<'left' | 'right' | 'move'>('move');
   const didDrag = useRef(false);
@@ -308,6 +309,7 @@ function GanttBarRow({ row, rowIndex, rows, minOffset, dayWidth, hovered, onHove
   const width = Math.max((row.endOffset - row.startOffset + 1) * dayWidth - 2, 6);
 
   function onPointerDown(e: React.PointerEvent) {
+    if (readOnly) return;
     const edge = pendingEdge.current;
     pendingEdge.current = 'move';
     if (row.type === 'stage' && edge !== 'move') return;
@@ -322,7 +324,7 @@ function GanttBarRow({ row, rowIndex, rows, minOffset, dayWidth, hovered, onHove
   }
 
   function onPointerMove(e: React.PointerEvent) {
-    if (!dragRef.current) return;
+    if (!dragRef.current || readOnly) return;
     const dx = e.clientX - dragRef.current.startX;
     const dy = e.clientY - dragRef.current.startY;
 
@@ -404,7 +406,7 @@ function GanttBarRow({ row, rowIndex, rows, minOffset, dayWidth, hovered, onHove
             left, width,
             background: colors[row.type],
             opacity: dragging ? 0.5 : row.type === 'stage' ? 0.4 : 1,
-            cursor: 'grab',
+            cursor: readOnly ? 'default' : 'grab',
           }}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
@@ -412,8 +414,8 @@ function GanttBarRow({ row, rowIndex, rows, minOffset, dayWidth, hovered, onHove
         >
           {row.type !== 'stage' && (
             <>
-              <div className="absolute left-0 top-0 bottom-0 w-2 cursor-ew-resize" onPointerDown={() => { pendingEdge.current = 'left'; }} />
-              <div className="absolute right-0 top-0 bottom-0 w-2 cursor-ew-resize" onPointerDown={() => { pendingEdge.current = 'right'; }} />
+              {!readOnly && <div className="absolute left-0 top-0 bottom-0 w-2 cursor-ew-resize" onPointerDown={() => { pendingEdge.current = 'left'; }} />}
+              {!readOnly && <div className="absolute right-0 top-0 bottom-0 w-2 cursor-ew-resize" onPointerDown={() => { pendingEdge.current = 'right'; }} />}
               <span className="absolute inset-0 flex items-center px-3 text-[10px] font-semibold text-white/70 pointer-events-none overflow-hidden whitespace-nowrap select-none">
                 {fmtShort(offsetToDate(row.startOffset, state.projectStart, state.minOffset))}
                 {' – '}

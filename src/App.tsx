@@ -6,10 +6,12 @@ import { GanttView } from './components/gantt/GanttView';
 import { ChangesView } from './components/changes/ChangesView';
 import { TimelineView } from './components/timeline/TimelineView';
 import { Toast } from './components/ui/Toast';
+import { LoginPage } from './components/auth/LoginPage';
 
 function AppInner() {
   const { state } = useApp();
   const [toast, setToast] = useState<string | null>(null);
+  const [showLogin, setShowLogin] = useState(false);
   const showToast = useCallback((msg: string) => setToast(msg), []);
 
   if (state.loading) {
@@ -33,14 +35,15 @@ function AppInner() {
 
   return (
     <div className="h-screen flex flex-col overflow-hidden">
-      <TopBar onToast={showToast} />
+      <TopBar onToast={showToast} onLogin={() => setShowLogin(true)} />
       <main className="flex-1 min-h-0 overflow-hidden">
-        {state.view === 'cards' && <CardsView />}
-        {state.view === 'gantt' && <GanttView />}
+        {state.view === 'cards'   && <CardsView />}
+        {state.view === 'gantt'   && <GanttView />}
         {state.view === 'changes' && <ChangesView />}
         {state.view === 'timeline' && <TimelineView />}
       </main>
       <Toast message={toast} onDone={() => setToast(null)} />
+      {showLogin && <LoginPage onClose={() => setShowLogin(false)} />}
     </div>
   );
 }
