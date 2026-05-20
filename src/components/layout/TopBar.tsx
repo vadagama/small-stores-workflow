@@ -72,7 +72,7 @@ export function TopBar({ onToast, onLogin }: TopBarProps) {
         <div className="flex items-center gap-2">
           {/* View switcher */}
           <div className="inline-flex p-[3px] border border-[var(--line)] rounded-lg bg-[#0f1419]">
-            {(['cards', 'gantt', 'timeline'] as const).map(v => (
+            {(['cards', 'gantt', 'timeline', 'graph'] as const).map(v => (
               <button
                 key={v}
                 onClick={() => dispatch({ type: 'SET_VIEW', view: v })}
@@ -80,7 +80,7 @@ export function TopBar({ onToast, onLogin }: TopBarProps) {
                   state.view === v ? 'bg-[#26313b] text-white' : 'text-[var(--muted)] hover:text-white'
                 }`}
               >
-                {v === 'cards' ? 'Карточки' : v === 'gantt' ? 'Gantt' : 'Timeline'}
+                {v === 'cards' ? 'Карточки' : v === 'gantt' ? 'Gantt' : v === 'timeline' ? 'Timeline' : 'Граф'}
               </button>
             ))}
           </div>
@@ -150,7 +150,7 @@ export function TopBar({ onToast, onLogin }: TopBarProps) {
           </span>
 
           {/* ── Scale switcher: Gantt + Timeline ────────────────────────── */}
-          {state.view !== 'cards' && (
+          {state.view !== 'cards' && state.view !== 'graph' && (
             <div className="inline-flex h-8 p-[2px] border border-[var(--line)] rounded-lg bg-[#0f1419]">
               {SCALE_OPTS.map(({ label, ganttVal, tlVal }) => (
                 <button
@@ -172,7 +172,7 @@ export function TopBar({ onToast, onLogin }: TopBarProps) {
           )}
 
           {/* ── Reverse toggle: Gantt + Timeline ────────────────────────── */}
-          {state.view !== 'cards' && (
+          {state.view !== 'cards' && state.view !== 'graph' && (
             <label className={chip('cursor-pointer')}>
               <input
                 type="checkbox"
@@ -220,21 +220,6 @@ export function TopBar({ onToast, onLogin }: TopBarProps) {
         </div>
       )}
 
-      {/* ── Row 3: stage legend ─────────────────────────────────────────── */}
-      {showToolbar && (
-        <div className="flex items-center gap-3 flex-wrap">
-          <span className="text-xs font-semibold text-[var(--muted)] whitespace-nowrap">Этапы:</span>
-          {state.stages.map(st => (
-            <div key={st.id} className="flex items-center gap-1.5">
-              <div
-                className="w-2.5 h-2.5 rounded-sm flex-shrink-0"
-                style={{ backgroundColor: st.color ?? '#2f7ecb' }}
-              />
-              <span className="text-[11px] text-[var(--muted)] whitespace-nowrap">{st.title}</span>
-            </div>
-          ))}
-        </div>
-      )}
     </header>
   );
 }

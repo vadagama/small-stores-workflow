@@ -11,7 +11,7 @@ export function Toast({ message, onDone }: ToastProps) {
   useEffect(() => {
     if (!message) return;
     setVisible(true);
-    const t = setTimeout(() => { setVisible(false); setTimeout(onDone, 300); }, 2000);
+    const t = setTimeout(() => { setVisible(false); setTimeout(onDone, 300); }, 4000);
     return () => clearTimeout(t);
   }, [message, onDone]);
 

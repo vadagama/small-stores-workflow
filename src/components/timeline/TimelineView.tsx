@@ -104,8 +104,9 @@ interface LiveOffset {
 const HANDLE_H = 8; // px — resize handle zone at top/bottom of card
 
 // ── Main component ─────────────────────────────────────────────────────────────
-export function TimelineView() {
+export function TimelineView({ activeStageIds }: { activeStageIds: Set<string> }) {
   const { state, dispatch } = useApp();
+  const visibleStages = state.stages.filter(s => activeStageIds.has(s.id));
   const scale = state.timelineScale;
   const [live, setLive] = useState<LiveOffset | null>(null);
   const dragRef = useRef<DragState | null>(null);
@@ -127,8 +128,8 @@ export function TimelineView() {
   const totalH    = totalDays * pxPerDay;
 
   const subItems = useMemo(
-    () => buildSubItems(state.stages, pxPerDay, globalMin),
-    [state.stages, pxPerDay, globalMin],
+    () => buildSubItems(visibleStages, pxPerDay, globalMin),
+    [visibleStages, pxPerDay, globalMin],
   );
   const numTracks = useMemo(
     () => subItems.reduce((m, it) => Math.max(m, it.track + 1), 1),

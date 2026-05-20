@@ -83,30 +83,23 @@ export function SubprocessPanel({ subId, onClose }: SubprocessPanelProps) {
   const startDate = offsetToDate(sub.startOffset, state.projectStart, state.minOffset);
   const endDate   = offsetToDate(sub.endOffset,   state.projectStart, state.minOffset);
 
-  const stageBg  = stage.stageMeta.bg;
-  const stageHdr = stage.stageMeta.hdr;
-
   return (
-    <div className="flex flex-col h-full overflow-hidden" style={{ background: stageBg }}>
+    <div className="flex flex-col h-full overflow-hidden bg-[var(--panel)]">
+
       {/* Header */}
-      <div
-        className="px-4 pt-4 pb-3 border-b border-[rgba(0,0,0,.15)] flex-shrink-0"
-        style={{ background: stageHdr, borderLeftWidth: 3, borderLeftColor: stageColor, borderLeftStyle: 'solid' }}
-      >
-        <div className="flex items-start justify-between gap-2 mb-1">
-          <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: stageColor }}>
-            {stage.title}
-          </span>
-          <button
-            onClick={onClose}
-            className="text-[var(--muted)] hover:text-white text-xl leading-none flex-shrink-0 w-6 h-6 flex items-center justify-center rounded hover:bg-[rgba(255,255,255,.08)] transition-colors"
-          >
-            ×
-          </button>
+      <div className="px-5 pt-[18px] pb-[14px] border-b border-[var(--line)] flex-shrink-0 relative">
+        {/* Stage badge */}
+        <div
+          className="inline-flex items-center gap-1.5 px-[10px] py-[3px] rounded-full text-[11px] font-semibold mb-2"
+          style={{ background: stageColor + '20', color: stageColor }}
+        >
+          <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: stageColor }} />
+          {stage.title}
         </div>
 
+        {/* Title */}
         {!readOnly && editingTitle ? (
-          <div className="flex items-start gap-2">
+          <div className="flex items-start gap-2 mt-1">
             <textarea
               ref={titleAreaRef}
               autoFocus
@@ -115,24 +108,32 @@ export function SubprocessPanel({ subId, onClose }: SubprocessPanelProps) {
               onChange={e => { setTitleVal(e.target.value); const el = e.target; el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }}
               onBlur={commitTitle}
               onKeyDown={e => { if (e.key === 'Escape') { setTitleVal(sub.title); setEditingTitle(false); } }}
-              className="flex-1 text-sm font-bold leading-snug px-2 py-1 border border-[rgba(255,255,255,.4)] rounded bg-[rgba(255,255,255,.1)] text-white outline-none resize-none overflow-hidden"
+              className="flex-1 text-[17px] font-semibold leading-snug px-2 py-1 border border-[rgba(255,255,255,.2)] rounded bg-[var(--panel2)] text-[var(--text)] outline-none resize-none overflow-hidden"
             />
             <button
               onMouseDown={e => { e.preventDefault(); dispatch({ type: 'DELETE_SUB', subId }); onClose(); }}
-              className="flex-shrink-0 text-[rgba(255,100,100,.6)] hover:text-[rgba(255,60,60,1)] text-lg leading-none px-1 mt-0.5"
+              className="flex-shrink-0 text-[rgba(255,100,100,.6)] hover:text-[rgba(255,60,60,1)] text-lg leading-none px-1 mt-1"
             >
               ×
             </button>
           </div>
         ) : (
           <h3
-            className="text-sm font-bold text-[var(--text)] leading-snug cursor-default"
+            className="text-[17px] font-semibold text-[var(--text)] leading-snug cursor-default"
             onDoubleClick={() => { if (!readOnly) { setEditingTitle(true); setTitleVal(sub.title); } }}
             title={readOnly ? undefined : 'Двойной клик для редактирования'}
           >
             {sub.title}
           </h3>
         )}
+
+        {/* Close button */}
+        <button
+          onClick={onClose}
+          className="absolute top-[14px] right-[14px] text-[var(--muted)] hover:text-[var(--text)] text-base leading-none w-6 h-6 flex items-center justify-center rounded hover:bg-[rgba(255,255,255,.06)] transition-colors"
+        >
+          ✕
+        </button>
       </div>
 
       {/* Scrollable content */}
@@ -148,12 +149,12 @@ export function SubprocessPanel({ subId, onClose }: SubprocessPanelProps) {
               onChange={e => setRespVal(e.target.value)}
               onBlur={commitResp}
               onKeyDown={e => { if (e.key === 'Enter') commitResp(); if (e.key === 'Escape') { setRespVal(sub.responsible); setEditingResp(false); } }}
-              className="flex-1 text-xs px-2 py-1 border border-[rgba(80,120,200,.4)] rounded bg-[rgba(255,255,255,.85)] text-[#222] outline-none"
+              className="flex-1 text-xs px-2 py-1 border border-[rgba(255,255,255,.15)] rounded bg-[var(--panel2)] text-[var(--text)] outline-none"
             />
           ) : (
             <span
               onClick={() => { if (!readOnly) { setEditingResp(true); setRespVal(sub.responsible); } }}
-              className={`text-xs px-2 py-0.5 rounded ${readOnly ? '' : 'cursor-pointer hover:bg-[rgba(255,255,255,.07)]'} ${sub.responsible ? 'text-[var(--text)] font-medium' : 'text-[var(--muted)] italic'}`}
+              className={`text-xs px-2 py-0.5 rounded ${readOnly ? '' : 'cursor-pointer hover:bg-[rgba(255,255,255,.05)]'} ${sub.responsible ? 'text-[var(--text)] font-medium' : 'text-[var(--muted)] italic'}`}
             >
               {sub.responsible || 'Не указан'}
             </span>
@@ -201,15 +202,14 @@ export function SubprocessPanel({ subId, onClose }: SubprocessPanelProps) {
             <Accordion.Item value="open">
               <Accordion.Header>
                 <Accordion.Trigger
-                  className="flex items-center gap-1.5 px-4 py-[7px] text-[11px] font-semibold w-full group"
-                  style={{ color: 'rgba(155,185,245,.8)' }}
+                  className="flex items-center gap-1.5 px-[10px] py-[4px] text-[11px] font-semibold w-full group text-[var(--muted)]"
                 >
                   <span className="transition-transform group-data-[state=open]:rotate-90 text-[8px]">▶</span>
                   Шаги {sub.operations.length > 0 && <span className="opacity-60">({sub.operations.length})</span>}
                 </Accordion.Trigger>
               </Accordion.Header>
               <Accordion.Content className="accordion-content">
-                <div className="px-3 pb-3 pt-1 flex flex-col gap-[5px]" style={{ background: 'rgba(0,0,0,.15)' }}>
+                <div className="px-3 pb-3 pt-1 flex flex-col gap-[5px]">
                   {readOnly ? (
                     sub.operations.map((op, i) => (
                       <OperationItem
@@ -217,9 +217,9 @@ export function SubprocessPanel({ subId, onClose }: SubprocessPanelProps) {
                         op={op}
                         sub={sub}
                         index={i + 1}
-                        opsBg="rgba(155,185,245,.07)"
-                        opsBC="rgba(155,185,245,.2)"
-                        opsColor="rgba(255,255,255,.82)"
+                        opsBg="rgba(230,236,242,.04)"
+                        opsBC="rgba(230,236,242,.10)"
+                        opsColor="var(--text)"
                       />
                     ))
                   ) : (
@@ -231,9 +231,9 @@ export function SubprocessPanel({ subId, onClose }: SubprocessPanelProps) {
                           op={op}
                           sub={sub}
                           index={i + 1}
-                          opsBg="rgba(155,185,245,.07)"
-                          opsBC="rgba(155,185,245,.2)"
-                          opsColor="rgba(255,255,255,.82)"
+                          opsBg="rgba(230,236,242,.04)"
+                          opsBC="rgba(230,236,242,.10)"
+                          opsColor="var(--text)"
                         />
                       ))}
                     </SortableContext>
@@ -248,12 +248,12 @@ export function SubprocessPanel({ subId, onClose }: SubprocessPanelProps) {
                       onBlur={commitAddOp}
                       onKeyDown={e => { if (e.key === 'Enter') commitAddOp(); if (e.key === 'Escape') { setAdding(false); setNewOpVal(''); } }}
                       placeholder="Название шага…"
-                      className="px-[6px] py-[5px] text-xs border border-[rgba(80,120,200,.5)] rounded-md bg-[rgba(255,255,255,.88)] text-[#222] outline-none"
+                      className="px-[6px] py-[5px] text-xs border border-[rgba(255,255,255,.15)] rounded-md bg-[var(--panel2)] text-[var(--text)] outline-none"
                     />
                   ) : (
                     <button
                       onClick={() => setAdding(true)}
-                      className="px-2 py-[4px] text-left text-[11px] border border-dashed border-[rgba(155,185,245,.3)] rounded-md text-[rgba(155,185,245,.6)] hover:bg-[rgba(155,185,245,.07)] transition-colors"
+                      className="px-2 py-[4px] text-left text-[11px] border border-dashed border-[var(--line)] rounded-md text-[var(--muted)] hover:bg-[rgba(255,255,255,.04)] transition-colors"
                     >
                       + шаг
                     </button>

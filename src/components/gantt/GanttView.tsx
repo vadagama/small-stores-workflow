@@ -17,7 +17,7 @@ interface GanttRow {
   item: Stage | Subprocess | Operation;
 }
 
-export function GanttView() {
+export function GanttView({ activeStageIds }: { activeStageIds: Set<string> }) {
   const { state, dispatch } = useApp();
   const timelineRef = useRef<HTMLDivElement>(null);
   const treeRef = useRef<HTMLDivElement>(null);
@@ -51,7 +51,7 @@ export function GanttView() {
     dispatch({ type: 'MOVE_SUB_TO_STAGE', subId, toStageId, toIdx });
   }, [dispatch]);
 
-  const rows = useMemo(() => buildRows(state), [state.stages, state.showStages, state.showSubs, state.showSteps]);
+  const rows = useMemo(() => buildRows(state, activeStageIds), [state.stages, state.showStages, state.showSubs, state.showSteps, activeStageIds]);
 
   const { minOffset, maxOffset, totalDays } = useMemo(() => {
     const offsets = rows.flatMap(r => [r.startOffset, r.endOffset]);
@@ -430,9 +430,9 @@ function GanttBarRow({ row, rowIndex, rows, minOffset, dayWidth, hovered, onHove
   );
 }
 
-function buildRows(state: ReturnType<typeof useApp>['state']): GanttRow[] {
+function buildRows(state: ReturnType<typeof useApp>['state'], activeStageIds: Set<string>): GanttRow[] {
   const rows: GanttRow[] = [];
-  state.stages.forEach(stage => {
+  state.stages.filter(s => activeStageIds.has(s.id)).forEach(stage => {
     if (state.showStages) {
       rows.push({ id: stage.id, type: 'stage', label: stage.title, depth: 0, startOffset: stage.startOffset, endOffset: stage.endOffset, color: stage.color, item: stage });
     }

@@ -1,4 +1,4 @@
-export type ViewMode = 'cards' | 'gantt' | 'changes' | 'timeline';
+export type ViewMode = 'cards' | 'gantt' | 'changes' | 'timeline' | 'graph';
 export type AppMode = 'view' | 'admin';
 
 export interface StageConfig {

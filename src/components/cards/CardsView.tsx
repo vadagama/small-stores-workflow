@@ -15,9 +15,10 @@ import { useApp } from '../../context/AppContext';
 import { SubBlock } from './SubBlock';
 import type { Stage, Subprocess } from '../../types';
 
-export function CardsView() {
+export function CardsView({ activeStageIds }: { activeStageIds: Set<string> }) {
   const { state, dispatch } = useApp();
   const readOnly = state.appMode === 'view';
+  const visibleStages = state.stages.filter(s => activeStageIds.has(s.id));
   const [activeSub, setActiveSub] = useState<Subprocess | null>(null);
   const [dragOverStageId, setDragOverStageId] = useState<string | null>(null);
 
@@ -117,7 +118,7 @@ export function CardsView() {
   if (readOnly) {
     return (
       <div className="overflow-y-auto h-full px-7 py-8 pb-20">
-        {state.stages.map(stage => (
+        {visibleStages.map(stage => (
           <StageDropZone
             key={stage.id}
             stage={stage}
@@ -133,7 +134,7 @@ export function CardsView() {
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
       <div className="overflow-y-auto h-full px-7 py-8 pb-20">
-        {state.stages.map(stage => (
+        {visibleStages.map(stage => (
           <StageDropZone
             key={stage.id}
             stage={stage}

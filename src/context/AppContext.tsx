@@ -487,12 +487,9 @@ interface AppContextValue {
 
 const AppContext = createContext<AppContextValue | null>(null);
 
-const LS_KEY = 'newstore-gantt-stages-v1';
-
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initialState);
   const loadedRef = useRef(false);
-  // Snapshot of stages at last import/export — used for diff computation
   const snapshotRef = useRef<Stage[] | null>(null);
 
   useEffect(() => {
@@ -500,56 +497,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     loadedRef.current = true;
     dispatch({ type: 'LOAD_START' });
 
-    // Parse localStorage cache
-    const saved = localStorage.getItem(LS_KEY);
-    let localUploadedAt = '';
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        const stages: Stage[] = Array.isArray(parsed) ? parsed : (parsed.stages ?? []);
-        const changelog = Array.isArray(parsed) ? [] : (parsed.changelog ?? []);
-        const projectStart: string | undefined = Array.isArray(parsed) ? undefined : parsed.projectStart;
-        localUploadedAt = parsed._uploadedAt ?? '';
-        snapshotRef.current = stages;
-        if (projectStart) dispatch({ type: 'SET_PROJECT_START', value: projectStart });
-        dispatch({ type: 'LOAD_SUCCESS', stages, changelog });
-      } catch { /* fall through */ }
-    }
-
-    // Fetch from Blob in background (stale-while-revalidate)
     fetchBlobData()
       .then(blobData => {
-        if (!blobData) {
-          // No data in Blob yet — use localStorage or fallback to YAML
-          if (!saved) {
-            loadYamlFromUrl('/data/schema.yaml')
-              .then(({ projectStart, stages, changelog }) => {
-                snapshotRef.current = stages;
-                dispatch({ type: 'SET_PROJECT_START', value: projectStart });
-                dispatch({ type: 'LOAD_SUCCESS', stages, changelog });
-              })
-              .catch(err => dispatch({ type: 'LOAD_ERROR', error: String(err) }));
-          }
-          return;
-        }
-
-        // If Blob has newer data — update state and cache
-        const blobTime = blobData._uploadedAt ? new Date(blobData._uploadedAt).getTime() : 0;
-        const localTime = localUploadedAt ? new Date(localUploadedAt).getTime() : 0;
-        if (blobTime > localTime) {
+        if (blobData && blobData.stages?.length > 0) {
           snapshotRef.current = blobData.stages;
           if (blobData.projectStart) dispatch({ type: 'SET_PROJECT_START', value: blobData.projectStart });
           dispatch({ type: 'LOAD_SUCCESS', stages: blobData.stages, changelog: blobData.changelog });
-          localStorage.setItem(LS_KEY, JSON.stringify(blobData));
-          if (localUploadedAt) {
-            dispatch({ type: 'SET_BLOB_MESSAGE', message: 'Данные обновлены из облака' });
-          }
-        }
-      })
-      .catch(() => {
-        if (saved) {
-          dispatch({ type: 'SET_BLOB_MESSAGE', message: 'Облако недоступно — используются кэшированные данные' });
-        } else if (!saved) {
+        } else {
           loadYamlFromUrl('/data/schema.yaml')
             .then(({ projectStart, stages, changelog }) => {
               snapshotRef.current = stages;
@@ -558,32 +512,30 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             })
             .catch(err => dispatch({ type: 'LOAD_ERROR', error: String(err) }));
         }
+      })
+      .catch(() => {
+        loadYamlFromUrl('/data/schema.yaml')
+          .then(({ projectStart, stages, changelog }) => {
+            snapshotRef.current = stages;
+            dispatch({ type: 'SET_PROJECT_START', value: projectStart });
+            dispatch({ type: 'LOAD_SUCCESS', stages, changelog });
+          })
+          .catch(err => dispatch({ type: 'LOAD_ERROR', error: String(err) }));
       });
   }, []);
-
-  useEffect(() => {
-    if (!state.loading && state.stages.length > 0) {
-      localStorage.setItem(LS_KEY, JSON.stringify({
-        stages: state.stages,
-        changelog: state.changelog,
-        projectStart: state.projectStart,
-      }));
-    }
-  }, [state.stages, state.changelog, state.loading, state.projectStart]);
 
   function loadFromText(text: string) {
     dispatch({ type: 'LOAD_START' });
     try {
       const { projectStart, stages, changelog } = loadYamlFromText(text);
       snapshotRef.current = stages;
-      localStorage.removeItem(LS_KEY);
       dispatch({ type: 'SET_PROJECT_START', value: projectStart });
       dispatch({ type: 'LOAD_SUCCESS', stages, changelog });
 
-      // Upload to Blob so all viewers get the updated data
+      dispatch({ type: 'SET_BLOB_MESSAGE', message: 'Сохранение в облако…' });
       uploadBlobData({ stages, changelog, projectStart })
-        .then(() => dispatch({ type: 'SET_BLOB_MESSAGE', message: 'Данные сохранены в облако' }))
-        .catch(() => dispatch({ type: 'SET_BLOB_MESSAGE', message: 'Ошибка сохранения в облако — данные только локально' }));
+        .then(() => dispatch({ type: 'SET_BLOB_MESSAGE', message: 'Данные сохранены в облако ✓' }))
+        .catch(() => dispatch({ type: 'SET_BLOB_MESSAGE', message: 'Ошибка сохранения в облако' }));
     } catch (err) {
       dispatch({ type: 'LOAD_ERROR', error: String(err) });
     }
