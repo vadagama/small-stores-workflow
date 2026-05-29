@@ -172,12 +172,12 @@ export function GraphView({ activeStageIds }: { activeStageIds: Set<string> }) {
 
   const nodesRef   = useRef<GNode[]>([]);
   const edgesRef   = useRef<GEdge[]>([]);
-  const gs = useRef({ focusId: null as string|null, selectedArtifact: null as string|null, depth: 1, filterMode: 'dim' as 'dim'|'hide', zoom: 0.6, panX: 60, panY: 30, activeStages: new Set<string>(), canvasW: 6000, canvasH: 3000 });
+  const gs = useRef({ focusId: null as string|null, selectedArtifact: null as string|null, depth: 1, filterMode: 'hide' as 'dim'|'hide', zoom: 0.6, panX: 60, panY: 30, activeStages: new Set<string>(), canvasW: 6000, canvasH: 3000 });
   const [, setRev] = useState(0);
   const invalidate = useCallback(() => setRev(r=>r+1), []);
 
   const [depth, setDepth]           = useState(1);
-  const [filterMode, setFilterMode] = useState<'dim'|'hide'>('dim');
+  const [filterMode, setFilterMode] = useState<'dim'|'hide'>('hide');
   const [search, setSearch]         = useState('');
 
   const canvasWrapRef       = useRef<HTMLDivElement>(null);
@@ -257,12 +257,12 @@ export function GraphView({ activeStageIds }: { activeStageIds: Set<string> }) {
       const x1=src.x, y1=src.y, x2=dst.x, y2=dst.y;
       const dx=Math.max(60,(x2-x1)*0.5);
       const d=`M ${x1} ${y1} C ${x1+dx} ${y1}, ${x2-dx} ${y2}, ${x2} ${y2}`;
-      const g=svgEl('g');
+      const g=svgEl('g'); g.setAttribute('style','cursor:pointer');
 
-      const hit=svgEl('path'); setAttrs(hit,{d,stroke:'transparent','stroke-width':'10',fill:'none'}); g.appendChild(hit);
+      const hit=svgEl('path'); setAttrs(hit,{d,stroke:'transparent','stroke-width':'10',fill:'none','pointer-events':'all'}); g.appendChild(hit);
       const path=svgEl('path'); setAttrs(path,{d,stroke:color,'stroke-width':String(sw),opacity:String(opacity),fill:'none','marker-end':'url(#arr)','stroke-linecap':'round'}); g.appendChild(path);
 
-      const midX=(x1+x2)/2, midY=Math.min(y1,y2)-10;
+      const midX=(x1+x2)/2, midY=(y1+y2)/2;
       g.addEventListener('mouseenter',()=>{
         path.setAttribute('stroke-width',String(Math.max(sw*1.7,3))); path.setAttribute('opacity','1');
         const tt=tooltipRef.current;
@@ -552,6 +552,10 @@ export function GraphView({ activeStageIds }: { activeStageIds: Set<string> }) {
       <button key={node.id} onClick={()=>{gs.current.focusId=node.id;gs.current.selectedArtifact=null;renderAll();invalidate();centerOn(node.id);}}
         style={{background:'#262d38',border:'1px solid rgba(230,236,242,.10)',borderRadius:6,padding:'2px 8px',cursor:'pointer',fontSize:11.5,fontFamily:'inherit',color:'#e0e6ef'}}>{node.name}</button>
     );
+    const linkBtn = (node: GNode) => (
+      <button key={node.id} onClick={()=>{gs.current.focusId=node.id;gs.current.selectedArtifact=null;renderAll();invalidate();centerOn(node.id);}}
+        style={{background:'transparent',border:0,padding:0,cursor:'pointer',fontFamily:'inherit',color:'#5b9cf6',fontSize:'inherit',textDecoration:'underline',textAlign:'left',lineHeight:'inherit'}}>{node.name}</button>
+    );
     const artRow = (name: string, idx: number, below: React.ReactNode) => (
       <div key={idx} style={{padding:'8px 10px',background:'#1a1f2a',border:'1px solid rgba(230,236,242,.10)',borderRadius:8,marginBottom:6}}>
         <div style={{fontSize:12.5,color:'#e0e6ef'}}>{name}</div>
@@ -580,12 +584,12 @@ export function GraphView({ activeStageIds }: { activeStageIds: Set<string> }) {
           <div style={{padding:'14px 20px',borderBottom:'1px solid rgba(230,236,242,.10)'}}>
             {secHead('Источник',sources.length)}
             {sources.length===0 && <div style={{color:'#7a8fa8',fontSize:12,padding:'10px 0'}}>Внешний артефакт</div>}
-            {sources.map(s=>artRow(s.name, 0, <><span style={{color:'#7a8fa8'}}>{s.stageLabel} · {s.dept}</span>{chipBtn(s)}</>))}
+            <div style={{display:'flex',flexWrap:'wrap',gap:6}}>{sources.map(s=>chipBtn(s))}</div>
           </div>
           <div style={{padding:'14px 20px'}}>
             {secHead('Получатели',targets.length)}
             {targets.length===0 && <div style={{color:'#7a8fa8',fontSize:12,padding:'10px 0'}}>Нет потребителей</div>}
-            {targets.map(t=>artRow(t.name, 0, <><span style={{color:'#7a8fa8'}}>{t.stageLabel} · {t.dept}</span>{chipBtn(t)}</>))}
+            <div style={{display:'flex',flexWrap:'wrap',gap:6}}>{targets.map(t=>chipBtn(t))}</div>
           </div>
         </div>
       );
@@ -623,11 +627,33 @@ export function GraphView({ activeStageIds }: { activeStageIds: Set<string> }) {
         </div>
         <div style={{padding:'14px 20px',borderBottom:'1px solid rgba(230,236,242,.10)'}}>
           {secHead('Входы',n.inputs.length)}
-          {inputsW.map((inp,i)=>artRow(inp.name,i, inp.isExt ? <span style={{fontStyle:'italic'}}>← внешний вход</span> : <><span style={{color:'#7a8fa8'}}>← от:</span>{inp.srcs.length===0?<span style={{fontStyle:'italic'}}>источник не найден</span>:inp.srcs.map(s=>chipBtn(s))}</>))}
+          {inputsW.map((inp,i)=>(
+            <div key={i} style={{display:'flex',gap:7,marginBottom:5,fontSize:12.5,lineHeight:1.6,color:'#e0e6ef'}}>
+              <span style={{color:'#5b9cf6',flexShrink:0,marginTop:1}}>•</span>
+              <span>
+                {inp.name}
+                {inp.isExt
+                  ? <span style={{color:'#7a8fa8',fontStyle:'italic',fontSize:11.5}}> — внешний вход</span>
+                  : <><span style={{color:'#7a8fa8',fontSize:11.5}}> ← </span>{inp.srcs.length===0?<span style={{color:'#7a8fa8',fontStyle:'italic'}}>источник не найден</span>:inp.srcs.map(s=>linkBtn(s))}</>
+                }
+              </span>
+            </div>
+          ))}
         </div>
         <div style={{padding:'14px 20px',borderBottom:'1px solid rgba(230,236,242,.10)'}}>
           {secHead('Выходы',n.outputs.length)}
-          {outputsW.map((out,i)=>artRow(out.name,i, out.tgts.length===0?<span style={{fontStyle:'italic'}}>→ нет потребителей</span>:<><span style={{color:'#7a8fa8'}}>→ к:</span>{out.tgts.map(t=>chipBtn(t))}</>))}
+          {outputsW.map((out,i)=>(
+            <div key={i} style={{display:'flex',gap:7,marginBottom:5,fontSize:12.5,lineHeight:1.6,color:'#e0e6ef'}}>
+              <span style={{color:'#5b9cf6',flexShrink:0,marginTop:1}}>•</span>
+              <span>
+                {out.name}
+                {out.tgts.length===0
+                  ? <span style={{color:'#7a8fa8',fontStyle:'italic',fontSize:11.5}}> — нет потребителей</span>
+                  : <><span style={{color:'#7a8fa8',fontSize:11.5}}> → </span>{out.tgts.map(t=>linkBtn(t))}</>
+                }
+              </span>
+            </div>
+          ))}
         </div>
       </div>
     );
