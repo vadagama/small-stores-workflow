@@ -1,0 +1,40 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #1a1f2a;
+  --panel: #20262f;
+  --panel2: #262d38;
+  --line: rgba(230,236,242,.10);
+  --lines: rgba(230,236,242,.20);
+  --text: #e0e6ef;
+  --muted: #7a8fa8;
+  --row-h: 40px;
+}
+
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; margin: 0; padding: 0; overflow: hidden; }
+body { font-family: 'Inter', -apple-system, sans-serif; background: var(--bg); color: var(--text); }
+
+.gantt-table { display: grid; grid-template-columns: var(--left-w, 420px) 1fr; grid-template-rows: 48px 1fr; height: 100%; min-height: 0; }
+.gantt-bar-track { position: relative; height: var(--row-h); }
+.gantt-bar { position: absolute; top: 8px; bottom: 8px; border-radius: 4px; cursor: ew-resize; }
+.gantt-bar:hover { filter: brightness(1.15); }
+
+.accordion-content[data-state='open']  { animation: acc-down 0.2s ease; overflow: hidden; }
+.accordion-content[data-state='closed'] { animation: acc-up 0.2s ease; overflow: hidden; }
+@keyframes acc-down { from { height: 0; } to { height: var(--radix-accordion-content-height); } }
+@keyframes acc-up   { from { height: var(--radix-accordion-content-height); } to { height: 0; } }
+
+::-webkit-scrollbar { width: 29px; height: 29px; }
+::-webkit-scrollbar-track { background: rgba(255,255,255,.04); border-radius: 14px; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,.18); border-radius: 14px; border: 6px solid transparent; background-clip: padding-box; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,.35); border-radius: 14px; border: 6px solid transparent; background-clip: padding-box; }
+
+input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); opacity: 0.5; cursor: pointer; margin-left: 0; padding-left: 2px; }
+input[type="date"]::-webkit-calendar-picker-indicator:hover { opacity: 0.9; }
+input[type="date"]::-webkit-datetime-edit { padding: 0; }
+input[type="date"]::-webkit-datetime-edit-fields-wrapper { padding: 0; }
+
+.gantt-tree::-webkit-scrollbar { display: none; }
